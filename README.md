@@ -1,5 +1,5 @@
 # pwrf
-Operational post-processing system for WRF
+Operational post-processing system for PAGASA-WRF
 
 This consists of a series of bash scripts to initially create control and index files for PAGASA's WRF model. The scripts function to plot different weather parameters, extract data for user-defined stations, archive WRF output, and share products to the bureau's public website, ftp servers, and international collaborating institutions.
 
