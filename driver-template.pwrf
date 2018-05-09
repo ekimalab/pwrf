@@ -1,9 +1,0 @@
-#!/bin/bash
-
-for((f=${f_start};f<=${f_end};f+=${f_incr}))
-do
-  file=postwrf_d0${dom}_${work_name}
-  ln -sf ${in_dir}/${file}.gr2 .
-  g2ctl.pl ${file}.gr2 > ${file}.ctl
-  gribmap -i ${file}.ctl
-done
