@@ -1,0 +1,43 @@
+#!/bin/bash
+
+function extrGrib {
+
+if [ ! -z ${1} ]; then optextr_grib=${1}; fi
+
+for module in $(echo ${optextr_grib} | sed "s/,/ /g")
+do
+	echo ">> ${FUNCNAME[0]}: ${module}"
+
+	case ${module} in
+
+		pagasa)
+			wgrib2 ${file}.gr2 -s | egrep '(:TMP:2 m|:RH:2 m|:UGRD:10 m|:VGRD:10 m|:APCP:|:PRATE:|:PRES:surface|:LAND:|:TCDC:)' | wgrib2 -i ${file}.gr2 -grib ${out_dir}/${module}_${work_name}_f${fff}.gr2
+			;;
+		saoffgs)
+			wgrib2 ${file}.gr2 -s | egrep '(:APCP:|:PRATE:)' | wgrib2 -i ${file}.gr2 -grib ${out_dir}/${module}_${work_name}_f${fff}.gr2
+			;;
+		*)
+			echo -e "\nERROR! Incorrect module (${module}). Usage: ${FUNCNAME[0]} <pagasa|saoffgs>. To create a new module, edit $(basename $(echo ${BASH_SOURCE})).\n\nExiting..."
+			exit 1 
+			;;
+	esac
+
+done
+
+}
+
+
+function extrStnRR {
+
+if [ ! -z ${1} ]; then optextr_stnrr=${1}; fi
+
+for module in $(echo ${optextr_stnrr} | sed "s/,/ /g")
+do
+	echo ">> ${FUNCNAME[0]}: ${module}"
+	ln -sf ${pwrf_ops_grads}/stnid_${module}.dat .
+	ln -sf ${pwrf_ops_grads}/stnrr_${module}.gs . 
+	grads -blxc stnrr_${module}.gs
+	cp stnrr_${module}.dat ${out_dir}/stnrr_${module}_${work_name}_f${fff}.dat
+done
+
+}
