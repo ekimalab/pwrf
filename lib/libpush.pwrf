@@ -1,0 +1,58 @@
+#!/bin/bash
+
+function getInit {
+
+if [ ! -z ${last_run} ]
+then
+        source ${pwrf_ops_home}/work/init.txt
+else
+        echo "Enter work init <yyyymmddhh>:"
+        read work_init
+
+        if [ ${work_init} -lt 20100101 ]
+        then
+                echo -e "\nERROR (${FUNCNAME[0]})! Variable work_init not in database. Try using a later date.\n\nExiting..."
+                exit 1
+        elif [ ${work_init} -gt $(date +%Y%m%d%k -u) ]
+        then
+                echo -e "\nERROR (${FUNCNAME[0]})! Variable work_init not in database. Try using an earlier date.\n\nExiting..."
+        fi
+fi
+
+work_date=${work_init:0:8}
+work_utc=${work_init:8:2}
+work_name=${work_date}_${work_utc}00
+out_dir=${pwrf_ops_home}/output/op0${optpush_pagasa}
+
+}
+
+
+function pushPAGASA {
+
+cd ${out_dir}; getInit
+
+if [ ! -z ${1} ]; then optpush_pagasa=${1}; fi
+
+for module in $(echo ${optpush_pagasa} | sed "s/,/ /g")
+do
+        echo ">> ${FUNCNAME[0]}: ${module}"
+
+        case ${module} in
+                grib)
+
+ftp -nvi <<EOF
+open ${pagasa_servip}
+user ${pagasa_servuser} ${pagasa_servpw}
+binary
+
+cd ${pagasa_servdir}/hmd
+mput pagasa*gr2
+cd ${pagasa_servdir}/wd
+mput saoffgs*gr2
+quit
+EOF
+
+        esac
+
+done
+}
