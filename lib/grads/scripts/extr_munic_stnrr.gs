@@ -6,7 +6,7 @@
 'open infile.ctl'
 
 * extract rainfall data for 1578 stations
-fstn='stnid_hmd.dat'
+fstn='stnid_munic.dat'
 i=1
 while(i<1579)
 
