@@ -27,13 +27,13 @@ while(i<210)
 xline = i' 'xlat' 'xlon' 'rain
    if(i=1)
       head='Lat Lon Rainfall'
-      res=write('extr_hmd_stnrr.dat',head)
+      res=write('extr_stnrr_hmd.dat',head)
    endif
 
-   res=write('extr_hmd_stnrr.dat',xline,append)
+   res=write('extr_stnrr_hmd.dat',xline,append)
    i=i+1
 
 endwhile
 
 last='0 0 0 0 0'
-res=write('extr_hmd_stnrr.dat',last,append)
+res=write('extr_stnrr_hmd.dat',last,append)
