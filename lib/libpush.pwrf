@@ -1,58 +1,119 @@
 #!/bin/bash
 
+
 function getInit {
 
 if [ ! -z ${last_run} ]
 then
         source ${pwrf_ops_home}/work/init.txt
 else
+        source ${pwrf_ops_home}/conf/pwrf.cfg
         echo "Enter work init <yyyymmddhh>:"
         read work_init
 
-        if [ ${work_init} -lt 20100101 ]
+        if [ ${work_init} -lt $(date +%Y%m%d%H -ud "$(date +%Y%m%d -u) $(date +%H -u) - ${optout_xdays} days") ]
         then
-                echo -e "\nERROR (${FUNCNAME[0]})! Variable work_init not in database. Try using a later date.\n\nExiting..."
-                exit 1
-        elif [ ${work_init} -gt $(date +%Y%m%d%k -u) ]
+                echo -e "\nERROR (${FUNCNAME[0]})! Variable work_init not in database. Data stored in local server limited to last ${optout_xdays} days. Try using a later date.\n\nExiting..."
+                #exit 1
+        elif [ ${work_init} -gt $(date +%Y%m%d%H -ud "-$(( $(date +%k -u) % 3 )) hours") ]
         then
-                echo -e "\nERROR (${FUNCNAME[0]})! Variable work_init not in database. Try using an earlier date.\n\nExiting..."
+                echo -e "\nERROR (${FUNCNAME[0]})! Variable work_init not in database. Last run at $(date +%Y%m%d%H -ud "-$(( $(date +%k -u) % 3 )) hours").\n\nExiting..."
+                #exit 1
         fi
+
+        source ${pwrf_ops_home}/conf/pwrf.cfg
 fi
 
 work_date=${work_init:0:8}
 work_utc=${work_init:8:2}
 work_name=${work_date}_${work_utc}00
-out_dir=${pwrf_ops_home}/output/op0${optpush_pagasa}
+out_dir=${pwrf_ops_home}/output/op0${op}/${work_name}
+echo "Processing op0${op}/${work_name}..."; sleep 1
 
 }
 
 
 function pushPAGASA {
 
-cd ${out_dir}; getInit
+getInit; echo -e "\nPROGRAM INITIALIZED."
+cd ${out_dir}; pwd; sleep 1
 
 if [ ! -z ${1} ]; then optpush_pagasa=${1}; fi
 
+
 for module in $(echo ${optpush_pagasa} | sed "s/,/ /g")
 do
-        echo ">> ${FUNCNAME[0]}: ${module}"
+        echo -e "\n>> ${FUNCNAME[0]}: ${module}"
 
         case ${module} in
+
                 grib)
+                        if [ ! -z ${2} ]; then optextr_grib=${2}; fi
+                        for job_name in $(echo ${optextr_grib} | sed "s/,/ /g")
+                        do
 
 ftp -nvi <<EOF
 open ${pagasa_servip}
 user ${pagasa_servuser} ${pagasa_servpw}
 binary
 
-cd ${pagasa_servdir}/hmd
-mput pagasa*gr2
-cd ${pagasa_servdir}/wd
-mput saoffgs*gr2
+cd ${pagasa_servdir}/${module}/${job_name}
+pwd
+mkdir ${work_name}
+cd ${work_name}
+mput extr_${module}_${job_name}*
 quit
 EOF
+                        cd -
+                        done
+                        ;;
+                stnrr)
+                        if [ ! -z ${2} ]; then optextr_stnrr=${2}; fi
+                        for job_name in $(echo ${optextr_stnrr} | sed "s/,/ /g")
+                        do
 
+ftp -nvi <<EOF
+open ${pagasa_servip}
+user ${pagasa_servuser} ${pagasa_servpw}
+binary
+
+cd ${pagasa_servdir}/${module}/${job_name}
+mkdir ${work_name}
+cd ${work_name}
+mput extr_${module}_${job_name}*
+quit
+EOF
+                        cd -
+                        done
+                        ;;
         esac
 
 done
+
+}
+
+
+function pushDewetra {
+
+getInit; echo -e "\nPROGRAM INITIALIZED."
+cd ${out_dir}; pwd; sleep 1
+
+ftp -nvi <<EOF
+open ${dewetra_servip}
+user ${dewetra_servuser} ${dewetra_servpw}
+binary
+
+cd ${dewetra_servdir}
+mkdir ${work_init:0:4}
+mkdir ${work_init:0:4}/${work_init:4:2}
+mkdir ${work_init:0:4}/${work_init:4:2}/${work_init:6:2}
+mkdir ${work_init:0:4}/${work_init:4:2}/${work_init:6:2}/${work_init:8:2}00
+cd ${work_init:0:4}/${work_init:4:2}/${work_init:6:2}/${work_init:8:2}00
+mput extr_grib_pagasa_d02*
+mput extr_stnrr_hmd_d02*
+quit
+EOF
+
+cd -
+
 }
