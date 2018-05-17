@@ -1,0 +1,73 @@
+#!/bin/bash
+
+
+function checkInit {
+
+if [ -z ${work_init} ]
+then
+        echo "Variable work_init not specified. Switching to auto."; sleep 1
+        last_run=$(( $(date +%k -ud "-${optlag} minutes") % ${optint} )); echo "last_run was ${last_run} hour(s) ago"
+        work_init=$(date +%Y%m%d%H -ud "-${last_run} hours -${optlag} minutes")
+        echo "work_init=${work_init}"  | tee work/init.txt      # Write variables out to file for reference in other automated programs
+fi
+
+work_date=${work_init:0:8}
+work_utc=${work_init:8:2}
+work_name=${work_date}_${work_utc}00
+echo "Processing op0${op}/${work_name}..."; sleep 1
+
+}
+
+
+function manageDirs {
+
+if [ -z ${work_name} ]
+then
+        echo -e "\nERROR (${FUNCNAME[0]})! Variable work_name not specified. Run checkInit to automatically get last WRF initialization or use -w <yyyymmddhh> to set date and utc.\n\nExiting..."
+        exit 1
+fi
+
+in_dir=${pwrf_ops_home}/data/op0${op}/${work_name}; echo "in_dir=${in_dir}"
+out_dir=${pwrf_ops_home}/output/op0${op}/${work_name}; echo "out_dir=${out_dir}"
+
+# Create directories
+
+if [ -d ${out_dir} ]; then mv ${out_dir} ${pwrf_ops_home}/dump; fi
+mkdir -vp ${out_dir}
+
+if [ -z ${last_run} ]; then work_dir=${pwrf_ops_home}/work/${work_name}/d0${dom}; else work_dir=${pwrf_ops_home}/work/d0${dom}; fi
+if [ -d ${work_dir} ]; then mv ${work_dir} ${pwrf_ops_home}/dump; fi
+mkdir -vp ${work_dir}
+
+}
+
+
+function checkFend {
+
+if [ -z ${f_end} ]
+then
+        if [ ${op} -eq 1 ]
+        then
+                if [ ${dom} -eq 1 ]; then f_end=144; else f_end=48; fi
+        else
+                if [ ${dom} -eq 1 ]; then f_end=24; else f_end=12; fi
+        fi
+fi
+
+}
+
+
+function prepGrib {
+
+if [ -z ${work_name} ]
+then
+        echo -e "\nERROR (${FUNCNAME[0]})! Variable work_name not specified. Run checkInit to automatically get last WRF initialization or use -w <yyyymmddhh> to set date and utc.\n\nExiting..."
+        exit 1
+fi
+
+ln -sf ${in_dir}/${file}.gr2 .
+g2ctl.pl ${file}.gr2 > ${file}.ctl
+gribmap -i ${file}.ctl
+cp -v ${file}.ctl infile.ctl
+
+}
