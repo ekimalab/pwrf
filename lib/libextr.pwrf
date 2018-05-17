@@ -1,0 +1,44 @@
+#!/bin/bash
+
+
+function extrGrib {
+
+if [ ! -z ${1} ]; then optextr_grib=${1}; fi
+
+for job_name in $(echo ${optextr_grib} | sed "s/,/ /g")
+do
+        echo -e "\n>> ${FUNCNAME[0]}: ${job_name}\n"
+
+        case ${job_name} in
+
+                pagasa)
+                        wgrib2 ${file}.gr2 -s | egrep '(:TMP:2 m|:RH:2 m|:UGRD:10 m|:VGRD:10 m|:APCP:|:PRATE:|:PRES:surface|:LAND:|:TCDC:)' | wgrib2 -i ${file}.gr2 -grib ${out_dir}/extr_grib_${job_name}_${work_name}_d0${dom}_f${fff}.gr2
+                        ;;
+                saoffgs)
+                        wgrib2 ${file}.gr2 -s | egrep '(:APCP:|:PRATE:)' | wgrib2 -i ${file}.gr2 -grib ${out_dir}/extr_grib_${job_name}_${work_name}_d0${dom}_f${fff}.gr2
+                        ;;
+                *)
+                        echo -e "\nERROR (${FUNCNAME[0]})! Incorrect job_name (${job_name}). Usage: ${FUNCNAME[0]} <pagasa|saoffgs>. To create a new job_name, edit $(basename $(echo ${BASH_SOURCE})).\n\nExiting..."
+                        exit 1
+                        ;;
+        esac
+
+done
+
+}
+
+
+function extrStnRR {
+
+if [ ! -z ${1} ]; then optextr_stnrr=${1}; fi
+
+for job_name in $(echo ${optextr_stnrr} | sed "s/,/ /g")
+do
+        echo -e "\n>> ${FUNCNAME[0]}: ${job_name}"
+        ln -sf ${pwrf_ops_grads}/stnid_${job_name}.dat .
+        ln -sf ${pwrf_ops_grads}/extr_stnrr_${job_name}.gs .
+        grads -blxc extr_stnrr_${job_name}.gs
+        cp extr_stnrr_${job_name}.dat ${out_dir}/extr_stnrr_${job_name}_d0${dom}_${work_name}_f${fff}.dat
+done
+
+}
